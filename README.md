@@ -1,157 +1,91 @@
-# Hubot
+# Hubot for Slack
 
-This is a version of GitHub's Campfire bot, hubot. He's pretty cool.
+HubotをSlackに連携させる用のミニマムなファイル群です。
+HubotはHerokuにデプロイする想定です。
 
-This version is designed to be deployed on [Heroku][heroku]. This README was generated for you by hubot to help get you started. Definitely update and improve to talk about your own instance, how to use and deploy, what functionality he has, etc!
+※[hubot-slack](https://github.com/tinyspeck/hubot-slack)を利用しております。
 
-[heroku]: http://www.heroku.com
+## 注意事項
 
-### Testing Hubot Locally
+PRIVATE GROUPではhubotが反応してくれないようです。。
 
-You can test your hubot by running the following.
+## 設定方法
 
-    % bin/hubot
+### 0. このリポジトリをForkする
 
-You'll see some start up output about where your scripts come from and a
-prompt.
+このリポジトリをForkしてください。
+※個別にカスタマイズしたい場合はForkするほうがよいかと。
 
-    [Sun, 04 Dec 2011 18:41:11 GMT] INFO Loading adapter shell
-    [Sun, 04 Dec 2011 18:41:11 GMT] INFO Loading scripts from /home/tomb/Development/hubot/scripts
-    [Sun, 04 Dec 2011 18:41:11 GMT] INFO Loading scripts from /home/tomb/Development/hubot/src/scripts
-    Hubot>
+### 1. Forkしたファイルをローカルにgit cloneする
 
-Then you can interact with hubot by typing `hubot help`.
+    $ git clone https://github.com/blue-goheimochi/hubot-slack-base.git
 
-    Hubot> hubot help
+※リポジトリをForkしている場合はよしなにClone URLを変えてください。  
+※カレントディレクトリをCloneしたファイルのあるディレクトリに移動しておいてください。
 
-    Hubot> animate me <query> - The same thing as `image me`, except adds a few
-    convert me <expression> to <units> - Convert expression to given units.
-    help - Displays all of the help commands that Hubot knows about.
-    ...
+### 2. Heroku appを作成する
+
+    $ heroku create yourname-hubot-slack
 
 
-### Scripting
+※適当な名前でHeroku appを作成します。  
+※herokuコマンドを使用するためには[Heroku ToolBelt](https://toolbelt.heroku.com/)をインストールしておく必要があります。  
+※herokuにログインしていない場合は`heroku login`のコマンドでログインしてください。
 
-Take a look at the scripts in the `./scripts` folder for examples.
-Delete any scripts you think are useless or boring.  Add whatever functionality you
-want hubot to have. Read up on what you can do with hubot in the [Scripting Guide](https://github.com/github/hubot/blob/master/docs/scripting.md).
+### 3. Herokuにソースコードをデプロイする
 
-### Redis Persistence
+    $ git push heroku master
+    $ heroku ps:scale web=1
 
-If you are going to use the `redis-brain.coffee` script from `hubot-scripts`
-(strongly suggested), you will need to add the Redis to Go addon on Heroku which requires a verified
-account or you can create an account at [Redis to Go][redistogo] and manually
-set the `REDISTOGO_URL` variable.
+※ここでワーカープロセスも指定しておきます。
 
-    % heroku config:set REDISTOGO_URL="..."
+### 4. HerokuのAddonを追加する
 
-If you don't require any persistence feel free to remove the
-`redis-brain.coffee` from `hubot-scripts.json` and you don't need to worry
-about redis at all.
+    $ heroku addons:add rediscloud
 
-[redistogo]: https://redistogo.com/
+※redisのAddonを追加します。
 
-## Adapters
+### 5. Herokuのconfig設定する
 
-Adapters are the interface to the service you want your hubot to run on. This
-can be something like Campfire or IRC. There are a number of third party
-adapters that the community have contributed. Check
-[Hubot Adapters][hubot-adapters] for the available ones.
+    $ heroku config:add HEROKU_URL=http://XXXXX.herokuapp.com
 
-If you would like to run a non-Campfire or shell adapter you will need to add
-the adapter package as a dependency to the `package.json` file in the
-`dependencies` section.
+※2. で作成したHeroku appのURLを指定します。
 
-Once you've added the dependency and run `npm install` to install it you can
-then run hubot with the adapter.
+    $ heroku config:add HUBOT_SLACK_TOKEN=your-slack-token
+    $ heroku config:add HUBOT_SLACK_TEAM=your-slack-team
+    $ heroku config:add HUBOT_SLACK_BOTNAME=your-slack-botname
 
-    % bin/hubot -a <adapter>
+※Slack上の「Configure Integrations」から「Hubot」を追加し、「Setup Instructions」>「Expand」で表示される情報を設定します。  
+※Slack上の「Integration Settings」で「Hubot URL」を指定する部分があるので、Heroku appのURL設定してください。  
+※HUBOT_SLACK_BOTNAMEは任意に設定できます。
 
-Where `<adapter>` is the name of your adapter without the `hubot-` prefix.
+    $ heroku config:add HUBOT_SLACK_CHANNELMODE=whitelist
 
-[hubot-adapters]: https://github.com/github/hubot/blob/master/docs/adapters.md
+or
 
-## hubot-scripts
+    $ heroku config:add HUBOT_SLACK_CHANNELMODE=blacklist
 
-There will inevitably be functionality that everyone will want. Instead
-of adding it to hubot itself, you can submit pull requests to
-[hubot-scripts][hubot-scripts].
+※HUBOT_SLACK_CHANNELMODEがwhitelistの場合はHUBOT_SLACK_CHANNELSで指定したチャンネルのみを監視します。  
+※反対にHUBOT_SLACK_CHANNELMODEがblacklistの場合はHUBOT_SLACK_CHANNELSで指定したチャンネル以外を監視します。
 
-To enable scripts from the hubot-scripts package, add the script name with
-extension as a double quoted string to the `hubot-scripts.json` file in this
-repo.
+    $ heroku config:add HUBOT_SLACK_CHANNELS=channel1, channel2
 
-[hubot-scripts]: https://github.com/github/hubot-scripts
+※監視するチャットルームを設定する場合はHUBOT_SLACK_CHANNELSで指定します。
 
-## external-scripts
+### 6. SlackでHUBOT_SLACK_BOTNAME宛てにpingを送る
 
-Tired of waiting for your script to be merged into `hubot-scripts`? Want to
-maintain the repository and package yourself? Then this added functionality
-maybe for you!
+※`HUBOT_SLACK_BOTNAME=hubot`の場合
 
-Hubot is now able to load scripts from third-party `npm` packages! To enable
-this functionality you can follow the following steps.
+> hubot ping
 
-1. Add the packages as dependencies into your `package.json`
-2. `npm install` to make sure those packages are installed
+or
 
-To enable third-party scripts that you've added you will need to add the package
-name as a double quoted string to the `external-scripts.json` file in this repo.
+> @hubot ping
 
-## Deployment
+をHubotが許可されているチャンネルで投稿。
 
-    % heroku create --stack cedar
-    % git push heroku master
-    % heroku ps:scale app=1
+> PONG
 
-If your Heroku account has been verified you can run the following to enable
-and add the Redis to Go addon to your app.
+とHubotから返ってくる。
 
-    % heroku addons:add redistogo:nano
-
-If you run into any problems, checkout Heroku's [docs][heroku-node-docs].
-
-You'll need to edit the `Procfile` to set the name of your hubot.
-
-More detailed documentation can be found on the
-[deploying hubot onto Heroku][deploy-heroku] wiki page.
-
-### Deploying to UNIX or Windows
-
-If you would like to deploy to either a UNIX operating system or Windows.
-Please check out the [deploying hubot onto UNIX][deploy-unix] and
-[deploying hubot onto Windows][deploy-windows] wiki pages.
-
-[heroku-node-docs]: http://devcenter.heroku.com/articles/node-js
-[deploy-heroku]: https://github.com/github/hubot/blob/master/docs/deploying/heroku.md
-[deploy-unix]: https://github.com/github/hubot/blob/master/docs/deploying/unix.md
-[deploy-windows]: https://github.com/github/hubot/blob/master/docs/deploying/unix.md
-
-## Campfire Variables
-
-If you are using the Campfire adapter you will need to set some environment
-variables. Refer to the documentation for other adapters and the configuraiton
-of those, links to the adapters can be found on [Hubot Adapters][hubot-adapters].
-
-Create a separate Campfire user for your bot and get their token from the web
-UI.
-
-    % heroku config:set HUBOT_CAMPFIRE_TOKEN="..."
-
-Get the numeric IDs of the rooms you want the bot to join, comma delimited. If
-you want the bot to connect to `https://mysubdomain.campfirenow.com/room/42` 
-and `https://mysubdomain.campfirenow.com/room/1024` then you'd add it like this:
-
-    % heroku config:set HUBOT_CAMPFIRE_ROOMS="42,1024"
-
-Add the subdomain hubot should connect to. If you web URL looks like
-`http://mysubdomain.campfirenow.com` then you'd add it like this:
-
-    % heroku config:set HUBOT_CAMPFIRE_ACCOUNT="mysubdomain"
-
-[hubot-adapters]: https://github.com/github/hubot/blob/master/docs/adapters.md
-
-## Restart the bot
-
-You may want to get comfortable with `heroku logs` and `heroku restart`
-if you're having issues.
+以上。
